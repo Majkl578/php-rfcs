@@ -1,24 +1,22 @@
-===== Request for Comments: Property Accessors Syntax =====
-  * Version: 1.2
-  * Created: 2012-12-29
-  * Updated: 2013-01-17
-  * Author: Clint Priest <cpriest at php dot net>
-  * Contributors: Nikita Popov
-  * Status: Declined, Vote Failed
+ * Name: `property_accessors`
+ * Date: 2019-10-26
+ * Author: Michael Moravec <oss@majkl.me>
+ * Original Author: Clint Priest <cpriest@php.net>
+ * Contributors: Nikita Popov <nikic@php.net>
+ * Proposed Version: PHP 8.0
+ * RFC PR: [php-src/rfcs#2](https://github.com/php-src/rfcs/pull/2)
 
-==== Fork ====
-  * The changes for this RFC are available here: https://github.com/cpriest/php-src/tree/accessors
+## Original work
 
-==== Introduction ====
-This document describes the property accessor syntax.  The RFC which this was crafted from is located here: https://wiki.php.net/rfc/propertygetsetsyntax
+This RFC is based on the [Property Accessors Syntax 1.2 RFC](https://wiki.php.net/rfc/propertygetsetsyntax-v1.2) from 2013.
 
-Previous Revision: https://wiki.php.net/rfc/propertygetsetsyntax-v1.1
+# Introduction
 
-==== What Are Property Accessors? ====
+## What Are Property Accessors?
 
 Property accessors provide a clean, easy to understand and unified syntax for get/set accessors.  They allow read and write requests (gets and sets) from a class property to be run through a method first.  This method can perform validation or a transformation, or update other areas of the class.  Properties do not even have to be associated with a class member, and can generate their own data on-the-fly.
 
-===== Terminology / Glossary =====
+## Terminology / Glossary
 
 To provide clarity of documentation, the following glossary and example are provided:
   * Traditional Property - A property which has no accessors, a class "variable," the only type of property presently available
@@ -29,7 +27,7 @@ To provide clarity of documentation, the following glossary and example are prov
     * issetter - A type of accessor which is used to determine whether the property isset()
     * unsetter - A type of accessor which is used to unset() the property
 
-<code php>
+```php
 // Code sample indicating the terminology
 class TimePeriod {
     private $Seconds;  // <-- Traditional Property
@@ -41,17 +39,17 @@ class TimePeriod {
         unset() { unset($this->Seconds); }           // <-- Accessor, more specifically an unsetter
     }
 }
-</code>
+```
 
 **A fully implemented, symmetrically defined property with accessors should be functionally identical to a traditional property**
 
-===== Syntax =====
+# Syntax
 
-==== Basic Syntax ====
+## Basic Syntax
 
 This is the basic property accessor syntax as implemented.
 
-<code php>
+```php
 class TimePeriod {
     private $Seconds;
 
@@ -63,24 +61,24 @@ class TimePeriod {
         set($x) { $this->Seconds = $x * 3600; } 
     }
 }
-</code>
+```
 
-<code php>
+```php
 // Accessing the property is the same as accessing a class member
 $time = new TimePeriod();
 $time->Hours = 12;  // Stored as 43200
 echo $time->Hours;  // Outputs 12
-</code>
+```
 
 **Typehints**
 The setter also allows for optional type hinting, such as
-<code php>
+```php
     set(callable $x) { ... }
-</code>
+```
 
 Version 1.1 did not have parenthesized syntax, v1.2 adds optional parenthesis format.  If no parenthesis are provided, then $value is automatically provided in the case of a setter, the following is equivalent to the previous block:
 
-<code php>
+```
 class TimePeriod {
     private $Seconds;
 
@@ -92,13 +90,13 @@ class TimePeriod {
         set { $this->Seconds = $value * 3600; } 
     }
 }
-</code>
+```
 
-==== Overloading Properties ====
+## Overloading Properties
 
 Properties can be overloaded in extending classes.  An overloaded property can replace an existing accessor declaration without touching the other, replace both the get and set declarations, or add an omitted accessor declaration turning the property into a read/write property.  Additionally, a property may have its visibility increased through overloading.  Get or set declarations cannot be removed or hidden by the child class in any way.
 
-<code php>
+```php
 class TimePeriod {
     protected $Seconds = 3600;
 
@@ -141,12 +139,12 @@ class HalfTimePeriod extends TimePeriod {
         }
     }
 }
-</code>
+```
 
-=== Removal of Accessor ===
+## Removal of Accessor
 Subclasses may also eliminate the accessor aspect of a property by re-declaring the property without the accessor syntax.  This prunes the accessor functions from the sub-class that would ordinarily be inherited by the sub-class.  Take this example:
 
-<code php>
+```php
 class A {
      public $Foo {
          get { return 1; }
@@ -161,16 +159,17 @@ echo $o1->Foo;   // Echos 1 via A::get:$Foo
 
 $o2 = new B();
 echo $o2->Foo;   // Echos 5 from direct property access (no accessors present in class B)
-</code>
+```
 
 Note that the re-defined property must still be public (may not be redefined as private or protected).
 
 The accessors are only removed when using the ''public $Foo;'' syntax. ''public $Foo { }'' on the other hand will inherit the parent accessors without modifying them.
 
-==== Asymmetric Accessor Accessibility ====
+## Asymmetric Accessor Accessibility
+
 Property accessors can have different levels of visibility for the getter and setter.  This is achieved by setting either the get or set accessor to a lower visibility than the property is set to.
 
-<code php>
+```php
 class TimePeriod {
     private $Seconds = 3600;
 
@@ -179,21 +178,20 @@ class TimePeriod {
         protected set { $this->Seconds = $value * 3600; }
     }
 }
-</code>
+```
 
-<code php>
+```php
 $o = new TimePeriod();
 echo $o->Hours;    // Prints 1
 $o->Hours = 12;    // Fatal error: Cannot set protected property TimePeriod::$Hours from context '' 
-</code>
+```
 
 In the above example the getter inherits the public access level of the property definition while the setter becomes protected.
 
-==== isset / unset ====
-To facilitate complete functionality with properties it is necessary to provide accessor functions to act on isset() and unset() calls.  These operate just like their magic %%__isset() and __unset()%% functions but are definable within the property block.
+## isset / unset
+To facilitate complete functionality with properties it is necessary to provide accessor functions to act on isset() and unset() calls.  These operate just like their magic `__isset()` and `__unset()` functions but are definable within the property block.
 
-<code php>
-
+```php
 class TimePeriod {
     private $Seconds = 3600;
 
@@ -204,13 +202,13 @@ class TimePeriod {
         unset { unset($this->Seconds); }
     }
 }
-</code>
+```
 
-==== Guarding ====
+## Guarding
 
 Accessors guard properties access such that if a property has accessors defined for it, the accessors will be called whenever the property is accessed.  Only the appropriate accessors themselves may directly access the underlying property, even from within the same class.
 
-<code php>
+```php
 class TimePeriod {
     public $Hours {
         get { return $this->Hours ?: "not specified"; }
@@ -224,9 +222,9 @@ echo $o->Hours;   // echos not specified
 
 $o->Hours = 1;
 echo $o->Hours;   // echos 1
-</code>
+```
 
-=== For Additional Clarity ===
+### For Additional Clarity
 
 All interaction with a guarded property is proxied through the appropriate accessor except when within the same accessor:
   * Within a get scope, reads are not proxied; the property is read directly.
@@ -238,10 +236,11 @@ Accessors are free to interact with other properties which are visible to them, 
 
 Accessors are not required to use the property value, but it always exists.
 
-=== Interaction Between Accessors ===
+### Interaction Between Accessors
 
 Accessors are independent, in the below example the get accessor Foo::get:$b attempting to access $this->a goes through the getter for a.
-<code php>
+
+```php
 class Foo {
     public $a {
         get { $this->a = 1; return 2; }
@@ -259,18 +258,18 @@ echo $foo->b; // Echos 2 via getter for $a which again sets its underlying prope
 /* Note, that without the set; a warning would be produced by an attempt to set $this->a from the 
    getter for $a, this is because a setter is required to write to the property, even the getter 
    cannot write to it's own property without the setter, only the setter may do that. */
+```
 
-</code>
+## Automatic Implementations
 
-==== Automatic Implementations ====
-You may also use automatic implementations of accessors by not defining a body to the accessor.  Doing so causes an automatic implementation to occur.  
+You may also use automatic implementations of accessors by not defining a body to the accessor.  Doing so causes an automatic implementation to occur.
 
 Because property accessors shadow traditional properties, the property data storage is accessible only from within the accessor.
 
 The isset automatic implementation tests for the property to be non-null.  (See php equivalent below)
 The unset automatic implementation sets the property to be null.  (See php equivalent below)
 
-<code php>
+```php
 class TimePeriod {
     // Accessors are implemented just like you would define an actual accessor, but without a body
     public $Hours {
@@ -280,10 +279,11 @@ class TimePeriod {
         unset;
     }
 }
-</code>
+```
 
 Translates to this:
-<code php>
+
+```php
 class TimePeriod {
     public $Hours {
         get { return $this->Hours; }
@@ -292,23 +292,24 @@ class TimePeriod {
         unset { $this->Hours = NULL; }
     }
 }
-</code>
+```
 
 >  **Note:** isset & unset implementations are always provided with default implementations unless the author explicitly defines their own.
 
-=== Invalid Usage of isset()/unset() ===
+### Invalid Usage of isset()/unset()
 
 There are two cases where isset and unset do not logically make sense as detailed below:
 
   * If there is no getter defined, then an isset() call is technically invalid since the value cannot be obtained to see if it was set.  In this case, isset() will silently ignore the invalid state, return false and continue execution.
   * If there is no setter defined, then an unset() call is technically invalid since the value cannot be changed as there is no setter.  In this case, unset() will emit a warning and continue execution but otherwise have no effect.
 
-==== Recursion ====
-Recursion with property accessors works identically to their %%__get()%% and %%__set()%% cousins in that recursion is guarded.
+
+## Recursion
+Recursion with property accessors works identically to their `__get()` and `__set()` cousins in that recursion is guarded.
 
 When the accessor that was called attempts to access the property it will directly access the underlying property, this is the only context in which the recursion guard is bypassed.
 
-<code php>
+```php
 1  class A {
 2      public $Foo {
 3         get {
@@ -330,9 +331,10 @@ Line  6: Calls A::set:$Foo(5) and finally returns the value 5
 Line 13: Calls A::get:$Foo;
 Line  4: Directly reads the underlying property (getter is guarded from a 2nd call)
 Line  5: Directly reads the underlying property (getter is guarded from a 2nd call) and returns the value
-</code>
+```
 
-=== Illegal Context Access (Recursion Guarding) ===
+### Illegal Context Access (Recursion Guarding)
+
 If an accessor is called while it is already being guarded (from recursion) from an illegal context (anything that isn't the same accessor) then the following occurs:
 
   * get called from illegal context: Recursion warning is emitted, NULL is returned.
@@ -340,10 +342,11 @@ If an accessor is called while it is already being guarded (from recursion) from
   * isset called from illegal context: Recursion warning is emitted, false is returned.
   * unset called from illegal context: Recursion warning is emitted, unset is ignored.
 
-==== Abstract Accessors ====
+## Abstract Accessors
+
 Individual accessors may be defined abstract which will cause the class to be abstract and require any extending classes to define a body for the abstract accessors.
 
-<code php>
+```php
 class Foo {
     public $bar {
         abstract get;
@@ -355,10 +358,11 @@ class SubFoo extends Foo {
 
 /* Fatal error: Class Foo contains 2 abstract accessors and must be declared
       abstract or implement the remaining accessors (Foo::$bar->get, Foo::$bar->isset) in ... */
-</code>
+```
 
 Just like abstract functions, it is illegal to declare an accessor abstract and to provide a body:
-<code php>
+
+```php
 class Foo {
     public $bar {
         abstract get { return 'test'; }
@@ -366,11 +370,11 @@ class Foo {
 }
 
 /* Fatal error: Abstract function Foo::$bar->get() cannot contain body in ... */
-</code>
+```
 
 You may also declare an entire property as abstract such as:
 
-<code php>
+```php
 class Foo {
     abstract public $bar {
         get;
@@ -379,12 +383,13 @@ class Foo {
 
 /* This marks all declared accessors as abstract, as well as the class.  An extending class 
    would need to provide a body for any declared accessors */
-</code>
+```
 
-==== Final Properties ====
+## Final Properties
+
 Properties declared final are not allowed to be overloaded in a child class, just like final methods.
 
-<code php>
+```php
 class TimePeriod {
     private $Seconds;
 
@@ -402,13 +407,13 @@ class HalfTimePeriod extends TimePeriod {
         get { return ($this->Seconds / 3600) / 2; }
     }
 }
-</code>
+```
 
-**Final Accessors**
+#### Final Accessors
 
 The get or set accessor of a property can be declared "final" independently of each other.  This would allow for one of them to be overloaded, but not the other.
 
-<code php>
+```php
 class TimePeriod {
     private $Seconds;
 
@@ -431,16 +436,17 @@ class HalfTimePeriod extends TimePeriod {
         set ( $this->Seconds = ($value * 3600) * 2; )
     }
 }
-</code>
+```
 
-==== Static Property Accessors ====
+## Static Property Accessors
+
 Static property accessors will not be in the first release of accessors, there are too many engine changes needed to enable this functionality.
 
-==== References ====
+## References
+
 Functions such as sort() require a reference to the underlying data storage value in order to modify them, in these cases you can place the & before the get to indicate the returning of a reference variable.
 
-<code php>
-
+```php
 class SampleClass {
     private $_dataArray = array(1,2,5,3);
     
@@ -453,9 +459,9 @@ class SampleClass {
 $o = new SampleClass();
 sort($o->dataArray);
 /* $o->dataArray == array(1,2,3,5); */
-</code>
+```
 
-=== All of the following work and have test cases written for them ===
+### All of the following work and have test cases written for them
 
   * $foo->bar[] = 1
   * $foo->bar[123] = 4
@@ -464,18 +470,19 @@ sort($o->dataArray);
   * $foo->bar{$x} = “foo” (string offsets)
 
 
-==== Operators ====
-The following operators have tests written for them and work as though it were any other variable.  If the operator attempts to make a change to a property for which no setter is defined, it will produce an error such as "Cannot set property xxx, no setter defined."  If a setter is defined, then the assignment operator works as expected.  
+## Operators
+
+The following operators have tests written for them and work as though it were any other variable.  If the operator attempts to make a change to a property for which no setter is defined, it will produce an error such as "Cannot set property xxx, no setter defined."  If a setter is defined, then the assignment operator works as expected.
 
 The following operators have code tests written already:  Pre/Post Increment/Decrement, Negation, String Concatenation (.), +=, -=, *=, /=, &=, |=, +, -, *, /, %, &, |, &&, ||, xor, ~, ==, ===, !=, !==, >, <, >=, <=, .=, <<, >>, Array Union (array + array), instanceof
 
-==== Read Only And Write Only Properties ====
+## Read Only And Write Only Properties
 
-Defining properties with only a getter or only a setter will make them read only and write only respectively but this does not enforce anything with subclasses.  
+Defining properties with only a getter or only a setter will make them read only and write only respectively but this does not enforce anything with subclasses.
 
 Developers wishing to prevent a setter from being defined by sub-classes will need to use the final keyword with something along these lines:
 
-<code php>
+```php
 class TimePeriod {
     private $Seconds;
 
@@ -484,15 +491,15 @@ class TimePeriod {
         private final set($value) { throw new Exception("Setting of TimePeriod::$Hours is not allowed."); }
     }
 }
-</code>
+```
 
-==== Interface Property Accessors ====
+## Interface Property Accessors
 
 Interfaces may define property accessor declarations without a body.  The purpose of this is to define property accessors that must exist in an implementing class.
 
 When a class implements an interface that defines a getter, it can add in a setter to turn the property into a read/write property.  The inverse is also true for implementing an interface with a setter only.  This is because interfaces are designed to enforce what //should be// in a class, and not what //should not be// in a class.
 
-<code php>
+```php
 interface iSampleInterface {
     public $MyProperty {
         get;
@@ -501,20 +508,21 @@ interface iSampleInterface {
         unset;
     }
 }
-</code>
+```
 
 Furthermore, a traditional property satisfies any requirements that an property accessor declaration within an interface declares, therefore, the following is a valid implementation of the above interface:
 
-<code php>
+```php
 class A implements iSampleInterface {
     public $MyProperty;
 }
-</code>
+```
 
-==== Traits ====
+## Traits
+
 Property accessors work as expected with traits including automatic accessor properties.  You can use any feature with traits that you could with classes including asymmetrical access levels, isset, unset, etc.
 
-<code php>
+```php
 trait SampleTrait {
     private $Seconds = 3600;
     
@@ -523,12 +531,13 @@ trait SampleTrait {
         set { $this->Seconds = $value / 3600; }
     }
 }
-</code>
+```
 
-==== Miscellaneous Q/A ====
+## Miscellaneous Q/A
 
-%%__FUNCTION__ and __METHOD__%% will resolve to the internally used function name:
-<code php>
+`__FUNCTION__` and `__METHOD__` will resolve to the internally used function name:
+
+```php
 class Bar {
     public $foo {
         get { var_dump(__FUNCTION__, __METHOD__); }
@@ -538,18 +547,17 @@ class Bar {
 
 string(9) "$foo->get"       // __FUNCTION__
 string(14) "Bar::$foo->get" // __METHOD__
-</code>
+```
 
 These names are also used in backtraces and error messages, for example:
 
   Fatal error: Call to protected accessor Test::$foo->set() from context ''
 
-These functions are not directly callable by the user, e.g. doing something like ''%%$this->{'$foo->get'}%%'' will not work.
+These functions are not directly callable by the user, e.g. doing something like `$this->{'$foo->get'}` will not work.
 
-===== Reflection =====
+# Reflection
 
-
-==== ReflectionProperty changes ====
+## ReflectionProperty changes
 
 The class has the following functions added:
 
@@ -561,14 +569,15 @@ The class has the following functions added:
 
 A fairly extensive test-suite has been created to test the functionality as well.
 
-===== Backward Compatibility =====
+## Backward Compatibility
+
 There are no known backward compatibility issues.
 
-===== Internal Implementation =====
+# Internal Implementation
 
 Implementation Details Document: https://wiki.php.net/rfc/propertygetsetsyntax-implementation-details
 
-===== Impact on APC and other Zend extensions =====
+# Impact on APC and other Zend extensions
 
 In addition to the "implementation details document" linked in the previous section this section outlines the impact the accessors implementation has on APC and other Zend extensions.
 
@@ -577,25 +586,3 @@ Most Zend extensions should not be affected by this change. Accessors are normal
 One extension that will require minor changes is APC. APC has to copy all ''zend_op_array''s and ''zend_property_info''s because they may be modified at runtime. Due to this proposal additional ''op_array''s may be located in  ''property_info->accs'' and need to be copied too. Here are the code snippets that need to be inserted in APC to do this: https://gist.github.com/4615156 (full code with the changes: https://gist.github.com/4597660). Other extensions that do something similar will require updates along the same lines.
 
 Thus the impact of the change on Zend exts is rather small.
-
-===== Tests =====
-  * 2012-12-30: 67 tests at this time
-  * 2013-01-17: 83 tests at this time
-
-===== Voting =====
-
-Voting ends not before Wednesday, January 23rd 2013. The PHP language is expanded, so a 2/3 majority is required.
-
-<doodle title="Accept PHP Accessors for 5.5?" auth="cpriest" voteType="single" closed="true">
-   * Yes
-   * No
-</doodle>
-
-===== Change Log =====
-  * 2013-01-05: Changed getGetter() and ilk to getGet()
-  * 2013-01-05: Noted that ReflectionPropertyAccessor will be a sub-class of ReflectionProperty
-  * 2013-01-05: Added Other Notes / Case Insensitivity note
-  * 2013-01-09: Note that ''public $Foo {}'' will inherit
-  * 2013-01-09: Update error messages and %%__FUNCTION__%% info
-  * 2013-01-09: Remove note on case-sensitivity. We properly support case-sensitivity now.
-
